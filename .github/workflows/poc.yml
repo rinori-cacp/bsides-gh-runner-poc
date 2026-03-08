@@ -1,0 +1,57 @@
+name: BSides GitHub Hosted Runner PoC
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  demo:
+    name: Run on GitHub-hosted Ubuntu runner
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Show runner details
+        run: |
+          echo "Runner OS: $RUNNER_OS"
+          echo "Runner Arch: $RUNNER_ARCH"
+          echo "Workspace: $GITHUB_WORKSPACE"
+          uname -a
+          pwd
+          ls -la
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run application
+        run: python app.py
+
+      - name: Run harmless security scan
+        run: bash scripts/scan.sh
+
+      - name: Build artifact
+        run: |
+          mkdir -p dist
+          cp app.py dist/
+          cp requirements.txt dist/
+          echo "Built on $(date -u)" > dist/build-info.txt
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bsides-demo-artifact
+          path: dist/
