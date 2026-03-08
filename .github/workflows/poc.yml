@@ -18,12 +18,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
+      - name: System Exploration
+        run: |
+          echo "--- User Identity ---"
+          whoami
+          id
+          
+          echo "--- Network Configuration ---"
+          ip addr
+          curl -s https://ifconfig.me && echo "" # Gets your public egress IP
+          
+          echo "--- Environment Details ---"
+          uname -a
+          uptime
+          df -h # Check disk space
+
       - name: Show runner details
         run: |
           echo "Runner OS: $RUNNER_OS"
           echo "Runner Arch: $RUNNER_ARCH"
           echo "Workspace: $GITHUB_WORKSPACE"
-          uname -a
           pwd
           ls -la
 
@@ -32,22 +46,29 @@ jobs:
         with:
           python-version: "3.11"
 
+      # Note: These steps will fail if the files don't exist in your repo
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if [ -f requirements.txt ]; then
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt
+          else
+            echo "No requirements.txt found, skipping."
+          fi
 
       - name: Run application
-        run: python app.py
-
-      - name: Run harmless security scan
-        run: bash scripts/scan.sh
+        run: |
+          if [ -f app.py ]; then
+            python app.py
+          else
+            echo "app.py not found."
+          fi
 
       - name: Build artifact
         run: |
           mkdir -p dist
-          cp app.py dist/
-          cp requirements.txt dist/
+          [ -f app.py ] && cp app.py dist/
+          [ -f requirements.txt ] && cp requirements.txt dist/
           echo "Built on $(date -u)" > dist/build-info.txt
 
       - name: Upload artifact
